@@ -306,5 +306,3 @@ python scripts/wonderdesk_daily_to_sheet_backfill.py --start 2025-08-15 --end 20
 ```
 
 ---
-
-¿Dudas o quieres que deje preparado un **Makefile** con comandos (`make install`, `make daily`, `make backfill`)? Puedo añadirlo en un momento.
