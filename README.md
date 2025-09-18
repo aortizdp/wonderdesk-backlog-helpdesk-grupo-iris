@@ -5,7 +5,7 @@ Automatiza la extracción de métricas de **WonderDesk** por agencia y su volcad
 Incluye tres scripts principales:
 
 * `wonderdesk_all_reports_async.py`: genera informes completos y CSVs para múltiples agencias.
-* `wonderdesk_daily_to_sheet.py`: inserta **cada día laborable** una fila por agencia en la hoja `DATOS-Daily` (con lógica especial de lunes = viernes→lunes).
+* `wonderdesk_daily_to_sheet.py`: inserta **cada día laborable** una fila por agencia en la hoja `DATOS-Daily` (con lógica especial de lunes = viernes→lunes) y **parchea `Cerrados=0`** con un valor anterior.
 * `wonderdesk_daily_to_sheet_backfill.py`: permite **recuperar días pasados** (uno o rango) y rellenar la hoja `DATOS-Daily` sin alterar el flujo diario.
 
 ---
@@ -26,9 +26,9 @@ Incluye tres scripts principales:
 **Cómo funciona (resumen)**:
 
 1. Inicia sesión en WonderDesk por agencia.
-2. `Home/Inicio` → extrae tabla, cuenta `DS`/`P3` por **ocurrencia** y calcula abiertos en ventana (por defecto últimos 7 días; en tu versión actual ya está ajustado a la lógica que acordamos).
-3. `List Closed` → salta a **\[>>]** y recorre hacia atrás para contar **Cerrados Última Semana**.
-4. Escribe los CSV y opcionalmente sube a Google Sheets si está configurado.
+2. `Home/Inicio` → extrae tabla, cuenta `DS`/`P3` por **ocurrencia** y calcula abiertos en ventana diaria (o semanal según configuración de esa versión).
+3. `List Closed` → salta a **\[>>]** y recorre hacia atrás para contar **Cerrados** en la ventana.
+4. Escribe los CSV y, si procede, sube a Google Sheets.
 
 ---
 
@@ -36,13 +36,19 @@ Incluye tres scripts principales:
 
 **Propósito**: ejecutar **cada día** y añadir una fila por agencia en la hoja de Google `DATOS-Daily`.
 
-**Columnas escritas (A–N):**
+**Columnas A–N escritas:**
 A `Fecha (DD/MM/YYYY)` · B `AGENCIA` · C `Tickets Abiertos` · D `Tickets Cerrados` · E `Abiertos Última Semana`\* · F `Cerrados Última Semana`\* · G `DS` · H `P3` · I `Total (=C+D)` · J `LW total (=E+F)` · K `Δ Cerrados(-22d)` (con `IFNA(...;0)`) · L `Semana (YYYY-SS)` · M `Mes (YYYY-MM)` · N `Año (YYYY)`.
 
 \* **Compatibilidad**: aunque las cabeceras se llaman “Última Semana”, el script rellena **una ventana diaria** con esta lógica:
 
 * L–V (no lunes): **ayer** `[00:00, 24:00)`
 * **Lunes**: **viernes 00:00 → lunes 00:00** (incluye fin de semana)
+
+**Parche `Cerrados=0`**:
+
+* Si el valor calculado de **D = `Tickets Cerrados`** es **0**, el script hace un *fallback* leyendo la fila de **hace `N` filas** (por defecto **22**) para la **misma agencia** y, si allí hay un valor `> 0`, lo **copia solo en la columna D** del día actual.
+* El salto `N` se controla con `DAILY_ROW_STRIDE` en el `.env` (por defecto `22`).
+* La fórmula de **K** también usa ese mismo salto: `=IFNA(D[hoy]-D[hoy-N];0)`.
 
 **Notas**:
 
@@ -94,6 +100,9 @@ ADRIANO_PASSWORD=********
 GOOGLE_SHEETS_SPREADSHEET_ID=1AbCdEf...           # ID del doc
 GOOGLE_APPLICATION_CREDENTIALS=/ruta/.login-gsheets.json
 SHEET_DAILY_TAB=DATOS-Daily
+
+# Parche de fallback y delta (N = filas entre días consecutivos por agencia)
+DAILY_ROW_STRIDE=22
 ```
 
 **Credenciales de Google**:
@@ -144,7 +153,7 @@ python scripts/wonderdesk_all_reports_async.py
 
 ```bash
 python scripts/wonderdesk_daily_to_sheet.py
-# → añade una fila por agencia en DATOS-Daily (ventana diaria/lunes extendido)
+# → añade una fila por agencia en DATOS-Daily (ventana diaria/lunes extendido, con parche Cerrados=0)
 ```
 
 ### 4.3. Backfill de días
@@ -204,6 +213,7 @@ ADRIANO_PASSWORD=
 GOOGLE_SHEETS_SPREADSHEET_ID=
 GOOGLE_APPLICATION_CREDENTIALS=
 SHEET_DAILY_TAB=DATOS-Daily
+DAILY_ROW_STRIDE=22
 ```
 
 **`.gitignore`** sugerido
@@ -249,14 +259,14 @@ mkdir wonderdesk-backlog-helpdesk-grupo-iris && cd $_
 # 2) estructura base
 mkdir -p scripts docs logs
 printf "python-dotenv\nplaywright\npython-dateutil\ngspread\ngoogle-auth\nnest_asyncio\n" > requirements.txt
-cp /ruta/a/tus/scripts/wonderdesk_all_reports_async.py scripts/
-cp /ruta/a/tus/scripts/wonderdesk_daily_to_sheet.py scripts/
-cp /ruta/a/tus/scripts/wonderdesk_daily_to_sheet_backfill.py scripts/
-# crea README.md con este contenido (o copia-pega desde este documento)
+# copia tus scripts existentes a scripts/
 
 # 3) git init + primer commit
 git init
 printf "# Ignora secretos\n.env\n.venv/\n*.json\n__pycache__/\n*.pyc\nlogs/\n" > .gitignore
+pbpaste > README.md   # copia este README del canvas y pégalo
+# opcional: crea .env.example con el bloque de arriba
+
 git add .
 git commit -m "Initial commit: scripts + docs"
 
@@ -286,8 +296,8 @@ git push -u origin main
 ## 8) Buenas prácticas y notas
 
 * **No subas** `.env` ni el JSON de credenciales. Usa `GOOGLE_APPLICATION_CREDENTIALS` con ruta local segura.
+* El parámetro **`DAILY_ROW_STRIDE`** controla tanto el **fallback** de `Cerrados=0` como el **Δ** de la columna K.
 * Si WonderDesk cambia HTML/labels, ajusta los selectores (los scripts ya incluyen heurísticas y *fallbacks*).
-* Para grandes volúmenes de agencias, considera usar Playwright en **headless** y limitar concurrencia si añadieras paralelismo.
 * Revisa periódicamente el *banner* de `Calls` y la paginación (`[>>]`, `[<]`, `Siguiente >`).
 
 ---
@@ -304,5 +314,3 @@ python scripts/wonderdesk_daily_to_sheet.py
 # Backfill del puente
 python scripts/wonderdesk_daily_to_sheet_backfill.py --start 2025-08-15 --end 2025-08-18
 ```
-
----
