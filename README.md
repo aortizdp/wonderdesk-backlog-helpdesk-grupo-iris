@@ -1,4 +1,4 @@
-# Wonderdesk - Backlog Helpdesk Grupo Iris
+# Wonderdesk - Backlog Helpdesk
 
 Automatiza la extracción de métricas de **WonderDesk** por agencia y su volcado en **Google Sheets**.
 
