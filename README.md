@@ -78,23 +78,23 @@ Crea un `.env` en la raíz del proyecto (no lo subas al repo) con:
 
 ```ini
 # WonderDesk
-HELPDESK_BASE_URL=https://helpdesk.grupoiris.net
+HELPDESK_BASE_URL=https://helpdesk.xxxxxx.xxxx
 HEADFUL=false
 
 # Opción multi‑agencia
-AGENCIES=ACVIAJES,ADRIANO,...
-ACVIAJES_NOMBRE=AC Viajes
-ACVIAJES_USUARIO=usuario1
-ACVIAJES_PASSWORD=********
-ADRIANO_NOMBRE=Adriano Travel
-ADRIANO_USUARIO=usuario2
-ADRIANO_PASSWORD=********
+AGENCIES=ACCCCC,AAADDDDD,...
+ACCCCCC_NOMBRE=ACCCCC
+ACCCCCC_USUARIO=usuario1
+ACCCCCC_PASSWORD=********
+AAADDDD_NOMBRE=AADDDDDD
+AAADDDD_USUARIO=usuario2
+ADAADDD_PASSWORD=********
 
 # Opción alternativa (una sola)
 # COMPANY=ACVIAJES
-# ACVIAJES_USERNAME=usuario1
-# ACVIAJES_PASSWORD=********
-# ACVIAJES_NOMBRE=AC Viajes
+# ACCCCCC_USERNAME=usuario1
+# ACCCCCC_PASSWORD=********
+# ACCCCCC_NOMBRE=ACCCCCC
 
 # Google Sheets
 GOOGLE_SHEETS_SPREADSHEET_ID=1AbCdEf...           # ID del doc
